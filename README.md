@@ -18,7 +18,7 @@ I now completed the colorization part, for simplication, I resize all the input 
 - Prediction:
 
 <div  align="center">    
-<img src="./imgs/images_99.jpg" width = "200" height = "200" alt="composite model" />
+<img src="./imgs/image_99.jpg" width = "200" height = "200" alt="composite model" />
 </div>
 
 
