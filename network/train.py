@@ -10,6 +10,7 @@ from torch.utils.data import Dataset, DataLoader
 from utils import *
 from dataloader import *
 from model import *
+<<<<<<< HEAD
 import skimage
 from skimage import io
 from skimage import img_as_ubyte
@@ -23,6 +24,9 @@ def NormMinandMax(npdarr, min=0, max=1):
     last = np.reshape(last, npdarr.shape)
     return last
  
+=======
+
+>>>>>>> 27145d2521bc8b4508f2f1d60a25af7c537fe563
 class TrainNetwork():
     def __init__(self, ckp_path, epoch_nums, batch_size, lr, lr_step_size, reference_frames=3):
         # get params
@@ -43,7 +47,11 @@ class TrainNetwork():
         self.mymodel.train()
         
         #os.environ["CUDA_VISIBLE_DEVICES"] = "2,3"
+<<<<<<< HEAD
         #self.mymodel = torch.nn.DataParallel(self.mymodel)
+=======
+        self.mymodel = torch.nn.DataParallel(self.mymodel)
+>>>>>>> 27145d2521bc8b4508f2f1d60a25af7c537fe563
         self.mymodel.cuda()
         print('model loaded.')
 
@@ -53,12 +61,21 @@ class TrainNetwork():
 
     def finetune_model(self):
         # define params
+<<<<<<< HEAD
         #params_list = list(self.mymodel.parameters()) 
         optimizer = optim.Adam(self.mymodel.parameters(), lr= self.lr)
         scheduler = optim.lr_scheduler.StepLR(optimizer, step_size = self.lr_step_size, gamma=0.1)
         
         
         criterion = nn.MSELoss().cuda()
+=======
+        params_list = list(self.mymodel.parameters()) 
+        optimizer = optim.SGD(params_list, lr= self.lr, momentum=0.9)
+        scheduler = optim.lr_scheduler.StepLR(optimizer, step_size = self.lr_step_size, gamma=0.1)
+        
+        
+        criterion = nn.MSELoss()
+>>>>>>> 27145d2521bc8b4508f2f1d60a25af7c537fe563
 	
 	# training process
         for epoch in range(self.epoch_nums):
@@ -87,7 +104,10 @@ class TrainNetwork():
                 # the size of reference color is (batch_size, 3, 2, 224, 224)
                 reference_color = Variable(reference_ab).cuda()
                 # the size of the target color is (batch_size, 1, 2, 224, 224)
+<<<<<<< HEAD
                 target_ab = target_ab.squeeze(1)
+=======
+>>>>>>> 27145d2521bc8b4508f2f1d60a25af7c537fe563
                 target_color = Variable(target_ab).cuda()
 
                 # zero the parameter gradients
@@ -97,6 +117,7 @@ class TrainNetwork():
                 # forward   
                 # the size of target_a / target_b is (batch_size, 1, 224, 224)
                 target_a, target_b = self.mymodel(x, reference_color)
+<<<<<<< HEAD
                  
                 #print(target_a.size())
                 #print(target_b.size())
@@ -141,10 +162,21 @@ class TrainNetwork():
                 #print("predicted min\n",torch.min(predicted_color))
                 #print("target max\n",torch.max(target_color))
                 #print("target min\n",torch.min(target_color))
+=======
+                target_a = target_a.unsqueeze(1)
+                target_b = target_b.unsqueeze(1)
+
+                predicted_color = torch.cat((target_a, target_b), dim=2)
+
+ 
+
+                # get loss anf backward
+>>>>>>> 27145d2521bc8b4508f2f1d60a25af7c537fe563
                 loss = criterion(predicted_color, target_color)
                 loss.backward()
                 optimizer.step()
                 
+<<<<<<< HEAD
                 predicted_color = predicted_color.cpu()
                 target_color = target_color.cpu()
                 
@@ -193,6 +225,10 @@ class TrainNetwork():
                 io.imsave(image_path, img_as_ubyte(predicted_image_rgb))
                 io.imsave(image_true_path, img_as_ubyte(gt_image_rgb))
  
+=======
+
+                
+>>>>>>> 27145d2521bc8b4508f2f1d60a25af7c537fe563
                 # print statistics
                 running_loss = running_loss+loss.item()
                 #if i_batch % 50 == 49:
@@ -203,8 +239,13 @@ class TrainNetwork():
             scheduler.step()
             
 
+<<<<<<< HEAD
             save_model_path= os.path.join(self.ckp_path,'model'+str(epoch+1)+'.pkl')
             #torch.save(self.mymodel.state_dict(),save_model_path)
+=======
+            save_model_path= self.ckp_path +'model'+str(epoch+1)+'.pkl'
+            torch.save(self.mymodel.module.state_dict(),save_model_path)
+>>>>>>> 27145d2521bc8b4508f2f1d60a25af7c537fe563
 
 
 if __name__ == "__main__":
@@ -213,6 +254,10 @@ if __name__ == "__main__":
     torch.cuda.manual_seed_all(0)
     random.seed(0)
 
+<<<<<<< HEAD
     ckp_path, epoch_nums, batch_size, lr, lr_step_size = "test_1", 100, 1, 0.001, 50
+=======
+    ckp_path, epoch_nums, batch_size, lr, lr_step_size = "test_1", 20, 1, 0.0001, 10
+>>>>>>> 27145d2521bc8b4508f2f1d60a25af7c537fe563
     mytrain = TrainNetwork(ckp_path, epoch_nums, batch_size, lr, lr_step_size)
     mytrain.finetune_model()

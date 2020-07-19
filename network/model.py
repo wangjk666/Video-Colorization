@@ -133,23 +133,42 @@ class Model(nn.Module):
 
     
     def forward(self, x, reference_color):
+<<<<<<< HEAD
         # the input size should be (batch_size*4, 1, 56, 56)
         # while the reference_color is (batch_size, 3, 2, 56, 56)
         
         row = torch.linspace(0,1,56)
         row = row.unsqueeze(1)
         row = row.expand(56,56)
+=======
+        # the input size should be (batch_size*4, 1, 224, 224)
+        # while the reference_color is (batch_size, 3, 2, 224, 224)
+        #down_feature = self.convnet(x)
+        #print('x', x.size())
+        #print('refer', reference_color.size())
+        row = torch.linspace(0,1,224)
+        row = row.unsqueeze(1)
+        row = row.expand(224,224)
+>>>>>>> 27145d2521bc8b4508f2f1d60a25af7c537fe563
         col = row.permute(1, 0)
         row = row.unsqueeze(0)
         col = col.unsqueeze(0)
 
         pos = torch.cat((row, col), dim=0)
         pos = pos.expand(x.size(0), 2, x.size(2), x.size(3)).cuda()
+<<<<<<< HEAD
         # the concated input should be (batch_size*4, 3, 56, 56)
         x_pos = torch.cat((x, pos), dim=1)
         #print('x_pos', x_pos.size())
         
         # the final output size is (batch*4, 64, 56, 56)
+=======
+        # the concated input should be (batch_size*4, 3, 224, 224)
+        x_pos = torch.cat((x, pos), dim=1)
+        #print('x_pos', x_pos.size())
+        
+        # the final output size is (batch*4, 64, 224, 224)
+>>>>>>> 27145d2521bc8b4508f2f1d60a25af7c537fe563
         x1 = self.inc(x_pos)
         x2 = self.down1(x1)
         x3 = self.down2(x2)
@@ -160,6 +179,7 @@ class Model(nn.Module):
         x = self.up3(x, x2)
         x = self.up4(x, x1)
         
+<<<<<<< HEAD
         #print('U-net',x.device)        
         # resize the downfeature to (batch_size, 4, 64, 56, 56)
         down_feature = x.view(self.batch_size, -1, x.size(1), x.size(2), x.size(3))
@@ -198,6 +218,15 @@ class Model(nn.Module):
         # after permutation, the size should be (batch_size, 64, 4, 224, 224)
         down_feature = down_feature.permute(0, 2, 1, 3, 4)
         #print('down feature', down_feature.size())
+=======
+        #print('U-net',x.size())        
+        # resize the downfeature to (batch_size, 4, 64, 224, 224)
+        down_feature = x.view(self.batch_size, -1, x.size(1), x.size(2), x.size(3))
+        # permute the channel
+        # after permutation, the size should be (batch_size, 64, 4, 224, 224)
+        down_feature = down_feature.permute(0, 2, 1, 3, 4)
+        #print('down feature', down_feature.size())i
+>>>>>>> 27145d2521bc8b4508f2f1d60a25af7c537fe563
 
 
         # implement the 3d conv on reference frames
@@ -225,6 +254,7 @@ class Model(nn.Module):
         # the size should be (batch, 1, 224, 224)
         reference_color_a = reference_color[:,2,0,:,:].unsqueeze(1)
         reference_color_b = reference_color[:,2,1,:,:].unsqueeze(1)
+<<<<<<< HEAD
        
         # after padding, the size is (batch, 1, 226, 226) 
         reference_color_a = F.pad(reference_color_a, (1,1,1,1), mode="replicate")
@@ -260,6 +290,19 @@ class Model(nn.Module):
               
         return predicted_color_a, predicted_color_b
         '''
+=======
+        
+        reference_color_a = F.pad(reference_color_a, (1,1,1,1), mode="replicate")
+        reference_color_b = F.pad(reference_color_b, (1,1,1,1), mode="replicate")
+
+        
+        target_a = torch.zeros(self.batch_size, 1, 224, 224)
+        target_b = torch.zeros(self.batch_size, 1, 224, 224)
+
+              
+        return target_a, target_b
+
+>>>>>>> 27145d2521bc8b4508f2f1d60a25af7c537fe563
 
         
         
