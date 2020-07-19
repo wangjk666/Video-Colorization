@@ -10,6 +10,10 @@ from PIL import Image
 import torchvision.transforms as transforms
 import torchvision.transforms.functional
 from torch.autograd import Variable
+from skimage import io
+from skimage.transform import resize
+import skimage
+
 
 VIDEO_FRAMES = 4
 VIDEO_ROOT_DIR = '../video_process'
@@ -24,6 +28,7 @@ def transforms():
     return torchvision.transforms.Compose([toTensor, normalize])
     
 def rgb2lab(image_path):
+    '''
     img_bgr = cv2.imread(image_path, cv2.IMREAD_COLOR)
     img_bgr = cv2.resize(img_bgr, (224, 224), interpolation=cv2.INTER_AREA)
     # the size of image in lab space is (224, 224, 3)
@@ -33,7 +38,19 @@ def rgb2lab(image_path):
     #img_bs = img_lab[..., 2] 
     mytransform = transforms()
     # the size of tensor is [3, 224, 224]
-    img_lab_tensor = mytransform(img_lab)
+    '''
+    mytransform = transforms()
+    img_rgb = io.imread(image_path)
+    #print(img_rgb.shape)
+    img_rgb = resize(img_rgb,(56,56))
+    #print(img_rgb.shape)
+    img_lab = skimage.color.rgb2lab(img_rgb)
+    #print(img_lab.shape)
+    img_lab = img_lab.transpose(2,0,1)
+    #print(img_lab.shape)
+    #img_lab_tensor = mytransform(img_lab)
+    #print(img_lab_tensor.size())
+    img_lab_tensor = torch.from_numpy(img_lab)
     return img_lab_tensor
 
 
@@ -44,7 +61,8 @@ def get_frames_from_path(video_info, mode, root_path=VIDEO_ROOT_DIR):
     all_frame_count = len(os.listdir(video_frame_path))
 
     if mode == 'train':
-        start_index = random.randint(0, all_frame_count - VIDEO_FRAMES)
+        #start_index = random.randint(0, all_frame_count - VIDEO_FRAMES)
+        start_index = 9
     else:
         start_index = 0
     

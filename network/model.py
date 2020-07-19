@@ -133,25 +133,23 @@ class Model(nn.Module):
 
     
     def forward(self, x, reference_color):
-        # the input size should be (batch_size*4, 1, 224, 224)
-        # while the reference_color is (batch_size, 3, 2, 224, 224)
-        #down_feature = self.convnet(x)
-        #print('x', x.size())
-        #print('refer', reference_color.size())
-        row = torch.linspace(0,1,224)
+        # the input size should be (batch_size*4, 1, 56, 56)
+        # while the reference_color is (batch_size, 3, 2, 56, 56)
+        
+        row = torch.linspace(0,1,56)
         row = row.unsqueeze(1)
-        row = row.expand(224,224)
+        row = row.expand(56,56)
         col = row.permute(1, 0)
         row = row.unsqueeze(0)
         col = col.unsqueeze(0)
 
         pos = torch.cat((row, col), dim=0)
         pos = pos.expand(x.size(0), 2, x.size(2), x.size(3)).cuda()
-        # the concated input should be (batch_size*4, 3, 224, 224)
+        # the concated input should be (batch_size*4, 3, 56, 56)
         x_pos = torch.cat((x, pos), dim=1)
         #print('x_pos', x_pos.size())
         
-        # the final output size is (batch*4, 64, 224, 224)
+        # the final output size is (batch*4, 64, 56, 56)
         x1 = self.inc(x_pos)
         x2 = self.down1(x1)
         x3 = self.down2(x2)
@@ -162,13 +160,44 @@ class Model(nn.Module):
         x = self.up3(x, x2)
         x = self.up4(x, x1)
         
-        #print('U-net',x.size())        
-        # resize the downfeature to (batch_size, 4, 64, 224, 224)
+        #print('U-net',x.device)        
+        # resize the downfeature to (batch_size, 4, 64, 56, 56)
         down_feature = x.view(self.batch_size, -1, x.size(1), x.size(2), x.size(3))
+
+        _,frames_num,_,h,w = down_feature.size()
+        area = h*w
+        refer_frames = frames_num-1 
+        
+        # ref_l is (b, 64, 3*56*56)
+        # tar_l is (b, 1*56*56, 64)
+        
+        ref_l = down_feature[:,0:3,:,:,:].permute(0,1,3,4,2)
+        ref_l = torch.reshape(ref_l, (self.batch_size, refer_frames*area, -1))
+        ref_l = ref_l.permute(0,2,1)
+        tar_l = down_feature[:,3:,:,:,:].permute(0,1,3,4,2)
+        tar_l = torch.reshape(tar_l, (self.batch_size, area,-1))
+ 
+        
+        # the size of sim is (b, 1*56*56, 3*56*56)
+        sim = tar_l.matmul(ref_l)
+        sim = torch.nn.functional.softmax(sim, dim=2)
+        
+        # the size of color is (b, 3*56*56, 1)
+        refer_color_a = reference_color[:,:,0,:,:]
+        refer_color_b = reference_color[:,:,1,:,:]
+        
+        refer_color_a = torch.reshape(refer_color_a, (self.batch_size, -1)).unsqueeze(2)
+        refer_color_b = torch.reshape(refer_color_b, (self.batch_size, -1)).unsqueeze(2)
+
+        predicted_color_a = sim.matmul(refer_color_a).view(self.batch_size, 1, h, w)
+        predicted_color_b = sim.matmul(refer_color_b).view(self.batch_size, 1, h, w)
+       
+        return predicted_color_a, predicted_color_b
+        '''
         # permute the channel
         # after permutation, the size should be (batch_size, 64, 4, 224, 224)
         down_feature = down_feature.permute(0, 2, 1, 3, 4)
-        #print('down feature', down_feature.size())i
+        #print('down feature', down_feature.size())
 
 
         # implement the 3d conv on reference frames
@@ -196,17 +225,41 @@ class Model(nn.Module):
         # the size should be (batch, 1, 224, 224)
         reference_color_a = reference_color[:,2,0,:,:].unsqueeze(1)
         reference_color_b = reference_color[:,2,1,:,:].unsqueeze(1)
-        
+       
+        # after padding, the size is (batch, 1, 226, 226) 
         reference_color_a = F.pad(reference_color_a, (1,1,1,1), mode="replicate")
         reference_color_b = F.pad(reference_color_b, (1,1,1,1), mode="replicate")
 
+        # the corresponding product of embeddings, final size is (batch, 1, 226, 226)
+        product = reference_embedding.mul(target_embedding)
+        product = product.sum(dim=1).unsqueeze(1)
+        product = F.pad(product, (1,1,1,1), mode="replicate")
+
+        predicted_color_a = torch.empty(self.batch_size, 1, 224, 224).cuda()
+        predicted_color_b = torch.empty(self.batch_size, 1, 224, 224).cuda()
         
-        target_a = torch.zeros(self.batch_size, 1, 224, 224)
-        target_b = torch.zeros(self.batch_size, 1, 224, 224)
+        for i in range(1,225):
+            for j in range(1,225):
+                 # (batch_size, 1, 3, 3)
+                 local_refer_a = reference_color_a[:,:,i-1:i+2,j-1:j+2]
+                 local_refer_b = reference_color_b[:,:,i-1:i+2,j-1:j+2]
+                 local_atten =   product[:,:,i-1:i+2,j-1:j+2]
+                 local_atten = F.softmax(local_atten, dim=2)
+                 local_atten = F.softmax(local_atten, dim=3)
+                 
+                 predicted_a = local_refer_a.mul(local_atten)
+                 predicted_b = local_refer_b.mul(local_atten)
+                 
+                 predicted_a = predicted_a.sum(dim=2).sum(dim=2)
+                 predicted_b = predicted_b.sum(dim=2).sum(dim=2)
+                 #print(predicted_a.device)
+                 predicted_color_a[:,:,i-1,j-1] = predicted_a
+                 predicted_color_b[:,:,i-1,j-1] = predicted_b
+                 
 
               
-        return target_a, target_b
-
+        return predicted_color_a, predicted_color_b
+        '''
 
         
         
