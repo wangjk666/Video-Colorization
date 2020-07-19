@@ -10,12 +10,20 @@ I now completed the colorization part, for simplication, I resize all the input 
 
 - Input L:
 
-![avatar](./imgs/l_99.jpg)
+<div  align="center">    
+<img src="./imgs/l_99.jpg" width = "200" height = "200" alt="composite model" />
+</div>
+
 
 - Prediction:
 
-![avatar](./imgs/image_99.jpg)
+<div  align="center">    
+<img src="./imgs/images_99.jpg" width = "200" height = "200" alt="composite model" />
+</div>
+
 
 - Groundtruth:
 
-![avatar](./imgs/true_99.jpg)
+<div  align="center">    
+<img src="./imgs/true_99.jpg" width = "200" height = "200" alt="composite model" />
+</div>
